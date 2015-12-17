@@ -1,0 +1,1028 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+    <title>Chase Seibert | blog</title>
+    <link href="http://chase-seibert.github.com/blog/atom.xml" rel="self"/>
+    <link href="http://chase-seibert.github.com/blog/" />
+    <updated>2015-12-04T14:26:38-08:00</updated>
+    <id>http://chase-seibert.github.com/blog/</id>
+    <author>
+        <name>Chase Seibert</name>
+        <email>chase.seibert+blog@gmail.com</email>
+    </author>
+
+    
+        <entry>
+            <title>Comparison of Chat Message Platforms</title>
+            <link href="/blog/2015/12/04/chat-message-platforms.html"/>
+            <updated>2015-12-04T00:00:00-08:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/12/04/chat-message-platforms</id>
+            <content type="html">&lt;p&gt;If you&amp;#39;re writing a chat app, the first big question to consider is whether you are going to write the actual chat backend. Why would you want to? You would get complete control over the functionality, reliability and interface. Why would you &lt;em&gt;not&lt;/em&gt; want to? Well, persistent socket systems that scale to thousands or hundreds of thousands of users are no small undertaking. Plus, a bunch of good platforms already exist. It probably comes down do whether chat is part if your core business. If you&amp;#39;re Snapchat, you probably want to write your own chat platform. If chat is just a feature you use to deliver your actual value, it probably does not make sense to spend the engineering time on it.&lt;/p&gt;
+
+&lt;p&gt;What platforms exist that could be used to write a chat app, and how do they stack up? Here is a rundown as of late 2015. My criteria is specific to what I&amp;#39;m trying to build:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Excellent documentation is a must.&lt;/li&gt;
+&lt;li&gt;iOS, Node and Python SDKs preferred.&lt;/li&gt;
+&lt;li&gt;iOS notifications.&lt;/li&gt;
+&lt;li&gt;Web hooks (so we can use stateless web servers).&lt;/li&gt;
+&lt;li&gt;Chats with more than two participants.&lt;/li&gt;
+&lt;li&gt;Need to be able to extend the messages with custom metadata.&lt;/li&gt;
+&lt;li&gt;End-to-end message encryption would be ideal.&lt;/li&gt;
+&lt;li&gt;Proven ability to handle a large number of sessions.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I evaluated eight platforms, and seriously considered three options before making a final decision.&lt;/p&gt;
+
+&lt;h1&gt;Also Rans&lt;/h1&gt;
+
+&lt;p&gt;These platforms &lt;em&gt;could&lt;/em&gt; be used to create a chat app, but all had various glaring issues.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://telegram.org/&quot;&gt;Telegram&lt;/a&gt; - No SDKs, just a REST APIs and a bunch of iOS code you can refactor to meet your needs. Hey guys, I don&amp;#39;t want to write HTTP request code manually for three platforms!&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.intercom.io/&quot;&gt;Intercom.io&lt;/a&gt; - Their primary focus is providing a call center chat app themselves, not enabling you to build your own app. As far as I could tell, chats were always one to one.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://pusher.com/&quot;&gt;Pusher&lt;/a&gt; - They do much more than chat, not focused on that. No iOS notification support.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.firebase.com/&quot;&gt;Firebase&lt;/a&gt; - They do &lt;em&gt;much&lt;/em&gt; more than chat, you can build your whole app and deploy it inside their platform. No native chat semantics, you would need to implement everything yourself.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.iron.io/&quot;&gt;Iron.io&lt;/a&gt; - It&amp;#39;s a message queue. No iOS SDK. API is REST, not socket based.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1&gt;#3: Quickblox&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://quickblox.com/&quot;&gt;Quickblox&lt;/a&gt; focuse on chat, and on the developer experience (they don&amp;#39;t have a chat app themselves). They have been around for a while (2013), and they&amp;#39;re based on XMPP, which is an open standard. They have an excellent reference iOS application.&lt;/p&gt;
+
+&lt;p&gt;No Python SDK, and no web hooks. But the killer was the difficulty of our prototype work. Calling their REST API from Python was super painful. The auth request has a timestamp, nonce and HMAC signature, which is super brittle. If the order of the parameters is not alphabetical, or there is any problem with how you setup the HMAC, you just get a generic signature error with no trouble-shooting information. Then you have a series of required custom HTTP headers.&lt;/p&gt;
+
+&lt;p&gt;All of these problems are solvable by writing your own Python SDK. But the iOS and Node.js SDKs were also hard to get working. Their Node library, admittedly in beta, was broken. Overall, their documentation was poor - it was hard to get stuff working. Take a look at how verbose the following code is:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;random&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;time&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;hashlib&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;hmac&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;requests&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;APP_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;AUTH_KEY&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;AUTH_SECRET&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;USER_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PASSWORD&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;DIALOG_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;create_session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;nonce&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;random&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;randint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()))&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;signature_raw_body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;application_id=&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;APP_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;amp;auth_key=&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;AUTH_KEY&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;amp;nonce=&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;nonce&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;amp;timestamp=&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;amp;user[login]=admin&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;amp;user[password]=password&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;signature&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hmac&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AUTH_SECRET&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signature_raw_body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hashlib&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sha1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hexdigest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;https://api.quickblox.com/session.json&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;Content-Type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;application/json&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;QuickBlox-REST-API-Version&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;0.1.0&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;application_id&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;APP_ID&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;auth_key&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;AUTH_KEY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;timestamp&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;nonce&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;nonce&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;signature&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signature&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;user&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;s&quot;&gt;&amp;#39;login&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;admin&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;s&quot;&gt;&amp;#39;password&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;password&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;json_data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;json_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;session&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;token&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_messages&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;qb_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;https://api.quickblox.com/chat/Message.json?chat_dialog_id=&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DIALOG_ID&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;QB-Token&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;qb_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;qb_token&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;create_session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;get_messages&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;qb_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;content&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;#2: PubNub&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.pubnub.com/&quot;&gt;PubNub&lt;/a&gt; is not focused exclusively on chat, but chat is a first class topic in their documentation. Truly excellent SDKs for virtually every language you could care about. Sometimes there are multiple SDKs for the same language that are specialized for particular frameworks - think Django, Twisted and Tornado. They have a lot of mindshare in the developer community; I constantly hear about other engineers using PubNub for hackathon projects. They pop up organically in my Twitter feed a lot.&lt;/p&gt;
+
+&lt;p&gt;Prototyping could not have been simpler. See the bellow code. The only downside is that they do not have true web hook support. Their web hooks are limited to when conversations start and stop, versus firing on every chat message.&lt;/p&gt;
+
+&lt;p&gt;Why are web hooks a big deal? They probably are not for many use cases. But one thing we want to be able to do is have a Python bot that listens to all conversations and performs various actions in real-time. As far as I can tell, the PubNub model for this is to use something like Twisted, which is an asynchronous event-based networking engine in Python. You leave a socket open to PubNub all the time and get notified of new messages over that active connection.&lt;/p&gt;
+
+&lt;p&gt;That performs really well, which is why they do it. But it drastically increases the complexity with regards to production high availability, versus a vanilla web server. With a web server, if you loose a node (and you will, think EC2 instance going down), it&amp;#39;s no problem. You simply have multiple nodes behind a load balancer. Because they are all stateless, recovery is automatic as new requests keep flowing to the remaining nodes.&lt;/p&gt;
+
+&lt;p&gt;With an active socket daemon, you have to solve the high availability problem yourself. If you create a master/hot backup architecture, you need to realize that the primary node is down and have the secondary server establish a connection and &lt;em&gt;resume any in progress conversations&lt;/em&gt;. That&amp;#39;s a separate critical code path that will execute only very rarely - a recipe for bugs. If you go active/active, then you have all the same problems of resuming a portion of the connections when a node fails, plus you have to figure out connection sharding.&lt;/p&gt;
+
+&lt;p&gt;None of these are insurmountable problems. But they are significant added complexity, which is what I&amp;#39;m trying to avoid by using an existing platform. PubNub has a super simple SDK, but then they force you to solve a bunch of architectural complexity yourself.&lt;/p&gt;
+
+&lt;p&gt;Here is our prototype code. Notice the paradigm; event loops. This code blocks until you kill the process.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pubnub&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Pubnub&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;ERROR : &amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;CONNECTED&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pubnub&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;publish&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;channel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;test&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;Hello from the PubNub Python SDK&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;reconnect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;RECONNECTED&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;disconnect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;DISCONNECTED&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;pubnub&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Pubnub&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;publish_key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subscribe_key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;secret_key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;pubnub&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscribe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;channels&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;dit&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;reconnect&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;reconnect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;disconnect&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;disconnect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;#1: Layer&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://layer.com/&quot;&gt;Layer&lt;/a&gt; is a new player. They focus solely on chat. They have good iOS and Node SDKs (but not Python). Their REST API semantics are dedicated to chat. Conversations and messages are first class concepts. Their documentation is good, if not as exhaustive as PubNub. Importantly, they have web hooks for each message (currently in private beta).&lt;/p&gt;
+
+&lt;p&gt;One downside is that they do not support end-to-end encryption per-se. Of course, you can manually encrypt your message bodies yourself. Being newer, they also do not have the track record that PubNub has.&lt;/p&gt;
+
+&lt;p&gt;Even though they do not have a Python SDK, our prototype code could not have been more Pythonic. This makes me confident we will be able to write clean code, and use a simple web server architecture.&lt;/p&gt;
+
+&lt;p&gt;Finally, there is significant upside to being a chat specific platform. The SDKs support concepts like read/unread, typing indicators, etc. You can do that yourself via PubNub, but you have to write more code. PubNub is schemaless - you are writing all the schema plus serialization yourself, separately for each language. Code is the enemy!&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;requests&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;APP_ID&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PLATFORM_API_TOKEN&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;XXX&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;HOST&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;https://api.layer.com&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;BASE_URL&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;HOST&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;/apps/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;APP_ID&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;HEADERS&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&amp;#39;Accept&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;application/vnd.layer+json; version=1.0&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&amp;#39;Authorization&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;Bearer &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PLATFORM_API_TOKEN&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&amp;#39;Content-Type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;application/json&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;_request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;relative_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;callable_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;getattr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;callable_&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;BASE_URL&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;relative_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HEADERS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_conversation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;post&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;/conversations&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;participants&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;John&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;Jane&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;distinct&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_messages&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;get&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;/conversations/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;/messages&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;post_message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;post&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;/conversations/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;/messages&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;sender&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;name&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;Chase&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+        &lt;span class=&quot;s&quot;&gt;&amp;#39;parts&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+            &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;s&quot;&gt;&amp;#39;body&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;s&quot;&gt;&amp;#39;mime_type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;text/plain&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;conversation&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;get_conversation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conversation&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;id&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;layer:///conversations/&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;get_messages&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;messages&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;content&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;post_response&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;post_message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conversation_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;this is a test&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;post_response&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;post_response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;content&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;I hope this helps you if you need to make a similar decision. Hit me up on Twitter and let me know how it goes!&lt;/p&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Case Study in Documentation Usability - Django vs. Flask/SQLAlchemy</title>
+            <link href="/blog/2015/11/13/documentation-usability-case-study.html"/>
+            <updated>2015-11-13T00:00:00-08:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/11/13/documentation-usability-case-study</id>
+            <content type="html">&lt;p&gt;When I&amp;#39;m evaluating new open source projects, there are a few things I look for. I look for how many stars they have on GitHub. I look at their issues in GitHub. If you are not on GitHub, I&amp;#39;m basically not interested. Finally, I look at their documentation. But how do you know if the documentation is any good? What makes good documentation, anyway?&lt;/p&gt;
+
+&lt;h2&gt;Documentation Usability&lt;/h2&gt;
+
+&lt;p&gt;Documentation can be exhaustive and still not ultimately useful. Documentation usability is the idea that documentation ultimately needs to help users solve their problems. Given a task to be done, how quickly and correctly can the documentation enable the user to complete their task?&lt;/p&gt;
+
+&lt;p&gt;The first thing you need to realize is that search is the interface for your documentation. You might get users to read a high level overview of the project when they are first starting out, but with rare exception no one is reading the entire documentation front to back for anything remotely complicated. Instead, they will search when they have a question. Usually using Google, not some crappy search functionality inside your documentation.&lt;/p&gt;
+
+&lt;p&gt;Your first challenge then is finding out what terminology your users are using. Importantly, you cannot assume that they will use your invented vocabulary. Your project is part of the entire ecosystem of tools they already use. Your best bet is to use &lt;a href=&quot;http://idratherbewriting.com/2009/04/28/documentation-usability-a-few-things-ive-learned-from-watching-users/&quot;&gt;existing terminology&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Also, users should know at all times &lt;a href=&quot;http://techwhirl.com/tips-and-tricks-10-heuristics-documentation-usability/&quot;&gt;where they are&lt;/a&gt; in the documentation relative to the whole, and relative to where they were previously. You want them to be able to quickly find related topics.&lt;/p&gt;
+
+&lt;h2&gt;Case Study - Django versus Flask/SQLAlchemy/Alembic&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.djangoproject.com/&quot;&gt;Django&lt;/a&gt; is a framework renowned for their excellent documentation. It&amp;#39;s a swiss army knife project that includes lots of functionality. A common alternative is a collection of projects, headlined by &lt;a href=&quot;http://flask.pocoo.org/&quot;&gt;Flask&lt;/a&gt;, &lt;a href=&quot;http://www.sqlalchemy.org/&quot;&gt;SQLAlchemy&lt;/a&gt; and &lt;a href=&quot;https://alembic.readthedocs.org/en/latest/&quot;&gt;Alembic&lt;/a&gt;. The documentation for the second set of projects is better than most. It&amp;#39;s pretty exhaustive. But it&amp;#39;s not very usable.&lt;/p&gt;
+
+&lt;p&gt;From the Django &lt;a href=&quot;https://docs.djangoproject.com/en/1.8/internals/contributing/writing-documentation/&quot;&gt;Guide to Documentation&lt;/a&gt;:&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;We place a high importance on consistency and readability of documentation. After all, Django was created in a journalism environment! So we treat our documentation like we treat our code: we aim to improve it as often as possible.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;This dedication to continuous improvement of the documentation is evident in some common use cases.&lt;/p&gt;
+
+&lt;h3&gt;Task: SQL IN clause queries&lt;/h3&gt;
+
+&lt;p&gt;One common task in both ecosystems is accessing a database. Further, there is a common (if not core) use case where you want to query a database by a list of record IDs. If you Google for &lt;code&gt;Django query in list&lt;/code&gt;, the first hit is the &lt;a href=&quot;https://docs.djangoproject.com/en/1.8/ref/models/querysets/#in&quot;&gt;Django documentation&lt;/a&gt;, and there is a sidebar with the &amp;quot;in&amp;quot; clause called out:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/django_in.png&quot; alt=&quot;django in&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;If you search for &lt;code&gt;SQLAlchemy query in list&lt;/code&gt;, you get five Stackoverflow answers before you see their official documentation. The first hit does not contain a correct answer. The &lt;a href=&quot;https://pythonhosted.org/Flask-SQLAlchemy/api.html&quot;&gt;actual documentation hit&lt;/a&gt; takes you a nebulously titled page, &amp;quot;API&amp;quot;. The table of contents does not contain anything at the granularity of individual topics on that page. Searching the page for &amp;quot;in&amp;quot; is of course fruitless. There is &lt;a href=&quot;http://docs.sqlalchemy.org/en/rel_0_7/core/expression_api.html#sqlalchemy.sql.operators.ColumnOperators.in_&quot;&gt;specific documentation for this feature&lt;/a&gt;, but it does not come back in the first few pages of Google results. Even if you find it, it does not include a specific code example.&lt;/p&gt;
+
+&lt;h3&gt;Task: Modify records when they are saved&lt;/h3&gt;
+
+&lt;p&gt;If you Google for &lt;code&gt;Django on save&lt;/code&gt;, the first hit is Stackoverflow. The second hit a &lt;a href=&quot;https://docs.djangoproject.com/en/1.8/ref/models/instances/#what-happens-when-you-save&quot;&gt;specific documentation&lt;/a&gt; for what happens when a record is saved. That links directly to how to over-ride a method called &lt;code&gt;post_save&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If you Google for &lt;code&gt;SQLAlchemy on save&lt;/code&gt;, you see three identical results for three difference versions of SQLAlchemy. In each case, you get a page for ORM events, which you basically need to read the entirety of to understand. There are nebulous sidebar links for &amp;quot;Mapper Events&amp;quot;, &amp;quot;Session Events&amp;quot; and &amp;quot;Query Events&amp;quot;, but those are not terms that make immediate sense to me, without reading a bunch of other documentation.&lt;/p&gt;
+
+&lt;h2&gt;Task: Redirecting HTTP to HTTPS&lt;/h2&gt;
+
+&lt;p&gt;If you Google &lt;code&gt;Django redirect HTTPS&lt;/code&gt;, the third result is a &lt;a href=&quot;https://code.djangoproject.com/ticket/12043&quot;&gt;bug report&lt;/a&gt; where someone went back and added a link to the canonical feature for this, &lt;code&gt;SECURE_PROXY_SSL_HEADER&lt;/code&gt;. Great example of paying attention to what users are searching for.&lt;/p&gt;
+
+&lt;p&gt;If you Google for &lt;code&gt;Flask redirect HTTPS&lt;/code&gt;, you also get a bug report as the first hit. There is some discussion, but not solution, at least for the case where something like Flask-admin is doing the redirect. But there actually is a &lt;a href=&quot;http://werkzeug.pocoo.org/docs/0.10/routing/&quot;&gt;documented solution&lt;/a&gt;, though it does not show up in the Google results.&lt;/p&gt;
+
+&lt;h1&gt;Take aways&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Exhaustive documentation is not necessarily useful documentation&lt;/li&gt;
+&lt;li&gt;Take time to write in your user&amp;#39;s vocabulary&lt;/li&gt;
+&lt;li&gt;Find out what they are actually searching for&lt;/li&gt;
+&lt;li&gt;Update old documentation to point to new solutions&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>The Role of Specifications in Agile</title>
+            <link href="/blog/2015/11/09/specifications-in-agile.html"/>
+            <updated>2015-11-09T00:00:00-08:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/11/09/specifications-in-agile</id>
+            <content type="html">&lt;p&gt;It&amp;#39;s commonly said that everyone does Agile differently. In my experience, it&amp;#39;s also common to do 
+basically whatever you want and call it Agile. It can be useful to occasionally reset and examine 
+what canonical Agile recommends. For software specifications, it&amp;#39;s pretty simple. Do just enough, 
+no more.&lt;/p&gt;
+
+&lt;h1&gt;Why do we need specifications at all?&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;A software requirements specification (SRS) is a description of a software system to be 
+developed, laying out functional and non-functional requirements, and may include a set of use 
+cases that describe interactions the users will have with the software.
+    - &lt;a href=&quot;https://en.wikipedia.org/wiki/Software_requirements_specification&quot;&gt;Wikipedia&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Historically, specifications have been used to communicate to the customer (be it an internal or 
+external customer) what will be built. Agile is built on the principle that this is actually not in
+the best interest of the customer. Why? &lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Low effort specifications will have all parties making critical assumptions.&lt;/li&gt;
+&lt;li&gt;High effort specifications take a lot of time - and will necessarily be wrong in big ways.&lt;/li&gt;
+&lt;li&gt;Scope can and should change as we learn more about the problem.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;In Agile, we build in short sprints. Documentation need only be created for the next sprint, or 
+perhaps one additional sprint. This is known as 
+    - &lt;a href=&quot;http://www.agileforall.com/2009/02/new-to-agile-remember-one-thing-just-enough-just-in-time/&quot;&gt;&amp;quot;Just in time Documentation&amp;quot;&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1&gt;Self-directed Agile Teams&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Agile artefacts such as technical spikes and development iterations mean that high-level 
+requirements can be considered sufficient at project initiation. 
+    - &lt;a href=&quot;http://www.batimes.com/articles/applying-agile-principles-to-requirement-analysis.html&quot;&gt;Ryan Hewitt&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;For agile teams, specifications exist so that the team knows what they need to build.
+Because we are committing only to one sprint at a time, we have no need to project long-term dates
+that would necessitate a full specification. What documentation does the team need to get started? 
+A highly detailed specification for just that first sprint.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.userstories.com/system/product_image/file/980/Feedback_Flow-original.png?1392328012&quot; alt=&quot;agile&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;An agile team is composed of a product manager, a designer and one or more developers. This team 
+must be empowered to design and implement their vision of a solution. A specification is definitely
+NOT for feedback or sign-off prior to building. &lt;/p&gt;
+
+&lt;h1&gt;How does the team know to build the right thing?&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Agile requirements, on the other hand, depend on a shared understanding of the customer that is 
+shared between the product owner, designer, and the development team. That shared understanding and 
+empathy for the target customer unlocks hidden bandwidth for product owners. They can focus on 
+higher-level requirements and leave implementation details to the development team, who is fully 
+equipped to do so – again, because of that shared understanding.
+    - &lt;a href=&quot;https://www.atlassian.com/agile/requirements/&quot;&gt;Dan Radigan, Senior Agile Evangelist, Atlassian&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;User stories are the form that specifications take. Each user story is created in advance and 
+placed in a backlog, but only the small set of the very next stories are flesh out in detail. Then,
+the level of detail is very high. Designs are included at this stage, and so are detailed 
+descriptions of fine grained behavior like validation, individual errors messages, etc.&lt;/p&gt;
+
+&lt;p&gt;Though the PM owns the user story, the team itself generates the detail through a processes called
+grooming. User empathy is critical - while PM and design naturally represent the customer in the 
+design process, the entire team needs to understand the customer motivation and pain points. &lt;/p&gt;
+
+&lt;p&gt;In the end, the team may very well not build the right thing. This is where feedback comes in - at
+the end of a sprint, once working software is produced and shown to the customer.&lt;/p&gt;
+
+&lt;h1&gt;When to get feedback&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Working software over comprehensive documentation
+    - &lt;a href=&quot;http://agilemanifesto.org/&quot;&gt;The Agile Manifesto&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;In Agile, feedback is given based on working software, not specifications. The team commits to 
+delivering and demoing working software every sprint. These demos are where feedback is generated. 
+I&amp;#39;ve often been surprised when &lt;a href=&quot;http://haacked.com/archive/2005/08/17/misunderstanding-agile-design.aspx/&quot;&gt;customers don&amp;#39;t really know what they want until they see it.&lt;/a&gt;&lt;/p&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Death to Meetings (and other alternatives)</title>
+            <link href="/blog/2015/10/16/death-to-meetings.html"/>
+            <updated>2015-10-16T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/10/16/death-to-meetings</id>
+            <content type="html">&lt;blockquote&gt;
+&lt;p&gt;What percentage of your time at work do spend in meetings? If you’re a middle manager, it&amp;#39;s likely about 35% of your time, and if you’re in upper management, it can be a whopping 50%. What&amp;#39;s worse is how unproductive these meetings usually are. - &lt;a href=&quot;https://www.themuse.com/advice/how-much-time-do-we-spend-in-meetings-hint-its-scary&quot;&gt;themuse.com&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Meetings are a fact of life in corporate America, whether you&amp;#39;re working at a large company, or a startup. Is that 35% number correct? Seems pretty close to my personal results. I&amp;#39;ve been using &lt;a href=&quot;&quot;&gt;Toggl&lt;/a&gt; for a while to track time, and over the last 30 days, I have spent more like 40% of my time in meetings.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/toggl_meetings.png&quot; alt=&quot;toggl_meetings&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;The red block is meetings, green is coding, and blue is writing.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;What&amp;#39;s worse, it&amp;#39;s actually not that much lower for individual contributors. Do business owners really want their employees spending this much time in meetings? Is that the most productive arrangement? What&amp;#39;s wrong with meetings, anyway?&lt;/p&gt;
+
+&lt;h1&gt;Bad Meetings&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Meetings are indispensable when you don&amp;#39;t want to do anything. - &lt;a href=&quot;http://www.brainyquote.com/quotes/keywords/meetings.html#z5clr8zclSbxAafk.99&quot;&gt;John Kenneth Galbraith&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Some meetings are very useful. The problem is that every meeting is very expensive. Say you get 10 people in a room for an hour. If they each make $150k/year (hey, this is the Bay Area), you just spent $750 (plus taxes and benefits). What if there are 100 such meetings a day across the company? What did you get for that money?&lt;/p&gt;
+
+&lt;p&gt;Have an all hands meeting for 250 people? That comes to $18,750. For that amount of money, you could book the &lt;a href=&quot;http://priceonomics.com/how-much-does-it-cost-to-book-your-favorite-band/&quot;&gt;Indigo Girls&lt;/a&gt; to present your powerpoint slides for you. You could give each employee a little over &lt;a href=&quot;https://www.thrillist.com/drink/nation/best-coconut-water-brand-amy-brian-coconut-juice-from-thailand-ranks-top&quot;&gt;2 gallons&lt;/a&gt; of coconut water. &lt;strong&gt;You could hire another six engineers.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;The worst case scenario is that meetings are being called primarily for the benefit of the meeting organizer. That person obviously feels that it&amp;#39;s a good use of time. What about everyone else? If you&amp;#39;re not careful, you may have attendees who only need to engage for 5-10 minutes in a one hour slot, and are basically sitting idle the rest of the time.&lt;/p&gt;
+
+&lt;p&gt;For a software engineer, that looks a lot like synchronous blocking on I/O. You&amp;#39;re killing throughput. Wouldn&amp;#39;t a system of asynchronous callbacks be a lot more efficient?&lt;/p&gt;
+
+&lt;h1&gt;Alternative to Meetings&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;If you had to identify, in one word, the reason why the human race has not achieved, and never will achieve, its full potential, that word would be &amp;#39;meetings.&amp;#39; - &lt;a href=&quot;http://www.brainyquote.com/quotes/keywords/meetings.html#z5clr8zclSbxAafk.99&quot;&gt;Dave Barry&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;We have tools at our disposal to solve this problem - but we need a shift in approach.&lt;/p&gt;
+
+&lt;h2&gt;Slack&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://slack.com/&quot;&gt;Slack&lt;/a&gt; is awesome. You should get it. If you&amp;#39;re on anything else, you&amp;#39;re missing out. How can you use it to replace some meetings? Just create a channel or private group instead of a meeting. Invite the attendees. Put the agenda in the chat. Link to some shared docs that people need to reference. Start a discussion.&lt;/p&gt;
+
+&lt;p&gt;One interesting thing that happens is that the conversation becomes asynchronous. It no longer strictly matters &lt;em&gt;when&lt;/em&gt; people chime in. You can hold a conversation over the course of a day, or a week. This is a &lt;em&gt;big win&lt;/em&gt; for everyone involved; let them participate when it makes the most sense for them.&lt;/p&gt;
+
+&lt;p&gt;Will people sometimes be slow to engage? Yep. That&amp;#39;s when it&amp;#39;s on the &amp;quot;meeting&amp;quot; organizer to ping people with an @mention. Meeting owners &lt;em&gt;need&lt;/em&gt; to be driving the conversation - whether it&amp;#39;s over Slack or in a traditional sit down.&lt;/p&gt;
+
+&lt;p&gt;Bonus points: your meeting is taking its own notes! Next time you have the meeting; the last meeting&amp;#39;s notes are right there.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;PS: If you work at Slack and you&amp;#39;re reading this - you guys should totally implement a &amp;quot;kill this meeting&amp;quot; plugin for Google calendar that deletes the meeting and sets up a temporary Slack channel with all the attendees.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2&gt;Email&lt;/h2&gt;
+
+&lt;p&gt;Email is another good option. Less collaborative than chat, but maybe better for longer prose. Of course, email is only slightly less maligned than meetings themselves. But hey, at least it&amp;#39;s asynchronous.&lt;/p&gt;
+
+&lt;h2&gt;GoToMeeting&lt;/h2&gt;
+
+&lt;p&gt;GoToMeeting is another good option, especially for screen sharing. Slack really needs to get on this, but for now it&amp;#39;s probably your best option for some types of meetings.&lt;/p&gt;
+
+&lt;h2&gt;Recurring &amp;quot;Meetings&amp;quot;&lt;/h2&gt;
+
+&lt;p&gt;One sticky wicket is the recurring meeting. If you have the same meeting weekly, do you still need a calendar item to remind people to join the chat, or start the email chain?&lt;/p&gt;
+
+&lt;p&gt;I guess you could, but that seems like the wrong tool for the job. Most recurring meetings are run by managers. Managers have a ton of things to keep track of. I guarantee they have a personal reminder system. They should use that to remind themselves to kick off the meeting on the right day.&lt;/p&gt;
+
+&lt;p&gt;Better yet, maybe you don&amp;#39;t actually &lt;em&gt;need&lt;/em&gt; the meeting this week. This is a subtle benefit - recurring meetings default to &lt;em&gt;not happening&lt;/em&gt;, versus defaulting to happening unless someone cancels them. Inertia is a funny thing. Managers &lt;em&gt;should&lt;/em&gt; be consciously thinking about whether a meeting is really required, every time.&lt;/p&gt;
+
+&lt;h1&gt;Good Meetings&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Meetings are at the heart of an effective organization, and each meeting is an opportunity to clarify issues, set new directions, sharpen focus, create alignment, and move objectives forward. - &lt;a href=&quot;http://www.amazon.com/Meetings-Matter-Strategies-Remarkable-Conversations/dp/0943097142&quot;&gt;Paul Axtell&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Some meetings are not really meetings. One on ones are not meetings. Those should absolutely be on the calendar and happen every week.&lt;/p&gt;
+
+&lt;p&gt;What are some examples of good meetings?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Demo + celebration of recently shipped projects&lt;/li&gt;
+&lt;li&gt;Brainstorming ideas for a new product&lt;/li&gt;
+&lt;li&gt;Strategy sessions&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;em&gt;Note: if you&amp;#39;re going to have a brainstorming meeting, make sure people know how to brainstorm. Talking about potential implementation and challanges is not brainstorming.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h1&gt;Meeting Hygiene&lt;/h1&gt;
+
+&lt;p&gt;No matter what the meeting is for, practice basic meeting hygiene.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Have a clear meeting owner&lt;/li&gt;
+&lt;li&gt;Have a clear agenda written down ahead of time&lt;/li&gt;
+&lt;li&gt;Start the meeting on time&lt;/li&gt;
+&lt;li&gt;The owner drives the discussion - stay on track&lt;/li&gt;
+&lt;li&gt;End the meeting with a +/-/delta poll&lt;/li&gt;
+&lt;li&gt;End the meeting on time, if not early&lt;/li&gt;
+&lt;li&gt;Send out meeting notes via email to the whole team&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1&gt;Culture&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Management&amp;#39;s job is to convey leadership&amp;#39;s message in a compelling and inspiring way. Not just in meetings, but also by example. - &lt;a href=&quot;http://www.brainyquote.com/quotes/keywords/meetings.html#z5clr8zclSbxAafk.99&quot;&gt;Jeffrey Gitomer&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Again, most meetings are called by managers. It&amp;#39;s up to those managers to set a culture of respect for people&amp;#39;s time. Some parting ideas:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Give everyone explicit permission to skip meetings at their discretion. No judgement when they do!&lt;/li&gt;
+&lt;li&gt;Meeting notes are a great way to make sure people are not attending meetings just so they can know what&amp;#39;s going on.&lt;/li&gt;
+&lt;li&gt;What if a meeting owner had to put $1 in a jar every time they schedule a meeting? What if it was $1/person?&lt;/li&gt;
+&lt;li&gt;Are you &lt;a href=&quot;https://github.com/chase-seibert/gcal-report&quot;&gt;tracking metrics&lt;/a&gt; on hours spent in meetings? Probably not. Why not?&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Getting Engineering Involved Early in a Project</title>
+            <link href="/blog/2015/10/09/getting-eng-involved-early.html"/>
+            <updated>2015-10-09T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/10/09/getting-eng-involved-early</id>
+            <content type="html">&lt;blockquote&gt;
+&lt;p&gt;Agile requirements are ideally visual and should be barely sufficient, i.e. the absolute 
+minimum required to enable development and testing to proceed with reasonable efficiency.
+                    - &lt;a href=&quot;http://www.allaboutagile.com/agile-principle-4-agile-requirements-are-barely-sufficient/#sthash.wIvPTKXl.dpuf&quot;&gt;Agile Principle #4&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Some engineering teams don&amp;#39;t want to think about a feature or a product until a specification has 
+been written. Their ideal world would be getting handed 100 pages of specification along with high
+fidelity mockups and then starting to implement. I&amp;#39;m not sure where this instinct comes from; it&amp;#39;s
+never been my experience of how engineering can be successful, at least in start ups.&lt;/p&gt;
+
+&lt;p&gt;The first thing you have to realize as an engineer is that the spec is always wrong. If you can&amp;#39;t
+write code without bugs, you can&amp;#39;t expect a specification without bugs. In fact, because engineers
+as pretty great at finding bugs, they can add a lot of value debugging specs. Just like coding,
+the earlier you find the bugs, the more work you&amp;#39;re saving yourself over time.&lt;/p&gt;
+
+&lt;p&gt;If you&amp;#39;re a PM, and your engineers are saying that they don&amp;#39;t want to be involved until specs are
+written, what they &lt;em&gt;may&lt;/em&gt; really be saying is that they don&amp;#39;t want to commit to building it yet. 
+Make sure you&amp;#39;re arguing about the same thing.&lt;/p&gt;
+
+&lt;h1&gt;My Ideal Process&lt;/h1&gt;
+
+&lt;p&gt;For me, the ideal process is having one technical lead, one designer and one product manager sit
+down over lunch before anything is set in stone. Maybe there is an email chain or a few bullets on
+a powerpoint deck at this point, but certainly nothing approaching a specification that could not
+also fit on a napkin.&lt;/p&gt;
+
+&lt;p&gt;There is a standing joke about agile teams really performing a series a medium sized waterfalls.
+This is a subset that I have seen in the wild - product managers doing what is essentially a 
+waterfall specification and mockup exercise and only involving engineering after the fact to 
+estimate. &lt;/p&gt;
+
+&lt;p&gt;If you&amp;#39;ve spent any time in a kitchen, you may already know how critical it is to season food 
+&lt;em&gt;before&lt;/em&gt; you cook it. Salting a piece of meat before it goes on the heat (ideally many hours before)
+produces a totally different result from cooking the meat and then adding salt. This is why the 
+short-lived proposal on regulating just that in NYC was so laughable; it would have produced vastly
+inferior products.&lt;/p&gt;
+
+&lt;h1&gt;How Involving Engineers Early Adds Value&lt;/h1&gt;
+
+&lt;p&gt;Engineers are experts at complexity. They can identify complexity where no one else has, and then
+quickly compartmentalize it and think about the big picture. That&amp;#39;s essentially how they break
+down problems, whether it&amp;#39;s on code or when evaluating a spec. They are also great at finding edge
+cases, i.e. holes in the spec with undefined behavior.&lt;/p&gt;
+
+&lt;p&gt;The goal should be to have both the design and the implementation match the user&amp;#39;s mental model.
+What does that mean? The user likely has some expectation of what&amp;#39;s happening when they use a piece
+of software. That expectation should be echoed in the design, so that their options at any given
+point match their expectations. That&amp;#39;s when software becomes easy to use. But, long term, it&amp;#39;s also
+critical that the actual implementation match the same model. Too often, a mismatch here could have
+been easily avoided by getting feedback early in the process from an engineer who can already see
+that there will be weird implementation implications.&lt;/p&gt;
+
+&lt;p&gt;Ultimately, that translates into product quality. &lt;/p&gt;
+
+&lt;h1&gt;Startup Culture&lt;/h1&gt;
+
+&lt;p&gt;Most startup engineering veterans can navigate this by instinct. Early on, the company may only
+&lt;em&gt;have&lt;/em&gt; engineers. There is no choice; they are involved in creating specs because there is no one 
+else to do it. The crimes of naive engineers on innocent designs and products are the topic of 
+another post, but at least they are forced to be involved at the right phase - the beginning. &lt;/p&gt;
+
+&lt;p&gt;Engineers want to be engaged. Go light on specs, but go heavy on iteration.&lt;/p&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Flask-Admin Edit One To Many Fields from the List View</title>
+            <link href="/blog/2015/09/25/flask-admin-list-edit-one-to-many.html"/>
+            <updated>2015-09-25T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/09/25/flask-admin-list-edit-one-to-many</id>
+            <content type="html">&lt;p&gt;I got to play with &lt;a href=&quot;https://flask-admin.readthedocs.org/en/latest/&quot;&gt;Flask-Admin&lt;/a&gt; for the first time
+this week. Compared with Django admin, it&amp;#39;s very extensible, though the default UI is pretty ugly.
+In any case, I ran into one particular challenge that took a good deal longer to figure out than
+it should have. Specifically, making a one to many relationship editable from the list view.&lt;/p&gt;
+
+&lt;p&gt;on the &lt;code&gt;ModelView&lt;/code&gt;. 
+You can easily expose editable fields from the list view using &lt;code&gt;column_editable_list&lt;/code&gt;. See
+&lt;a href=&quot;https://flask-admin.readthedocs.org/en/latest/api/mod_model/#flask_admin.model.BaseModelView.column_editable_list&quot;&gt;the documentation&lt;/a&gt;
+for more.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyModelView&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BaseModelView&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;column_editable_list&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;question&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;details&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;status&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This ends up looking like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/column_editable_list.png&quot; alt=&quot;column_editable_list&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;This works for most &lt;code&gt;db.Model&lt;/code&gt; column types I tried. For &lt;code&gt;String&lt;/code&gt;, &lt;code&gt;Text&lt;/code&gt; and &lt;code&gt;Integer&lt;/code&gt;, you get a 
+simple &lt;code&gt;input&lt;/code&gt; HTML element. For basic many to one relationships, you get a &lt;code&gt;select&lt;/code&gt; HTML element.
+But when I tried to make a one to many relationship editable, I got a stack trace:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Traceback &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;most recent call last&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;:
+  File &lt;span class=&quot;s2&quot;&gt;&amp;quot;/srv/nerdwallet/myproject/venv/lib/python2.7/site-packages/flask/app.py&amp;quot;&lt;/span&gt;, line 1836, in __call__
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; self.wsgi_app&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;environ, start_response&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  ...
+  File &lt;span class=&quot;s2&quot;&gt;&amp;quot;/srv/nerdwallet/myproject/venv/lib/python2.7/site-packages/wtforms/fields/core.py&amp;quot;&lt;/span&gt;, line 149, in __call__
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; self.meta.render_field&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;self, kwargs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  File &lt;span class=&quot;s2&quot;&gt;&amp;quot;/srv/nerdwallet/myproject/venv/lib/python2.7/site-packages/wtforms/meta.py&amp;quot;&lt;/span&gt;, line 53, in render_field
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; field.widget&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;field, **render_kw&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  File &lt;span class=&quot;s2&quot;&gt;&amp;quot;/srv/nerdwallet/myproject/venv/lib/python2.7/site-packages/flask_admin/model/widgets.py&amp;quot;&lt;/span&gt;, line 93, in __call__
+    &lt;span class=&quot;nv&quot;&gt;kwargs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; self.get_kwargs&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;subfield, kwargs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  File &lt;span class=&quot;s2&quot;&gt;&amp;quot;/srv/nerdwallet/myproject/venv/lib/python2.7/site-packages/flask_admin/model/widgets.py&amp;quot;&lt;/span&gt;, line 148, in get_kwargs
+    raise Exception&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Unsupported field type: %s&amp;#39;&lt;/span&gt; % &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;subfield&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;
+Exception: Unsupported field &lt;span class=&quot;nb&quot;&gt;type&lt;/span&gt;: &amp;lt;class &lt;span class=&quot;s1&quot;&gt;&amp;#39;flask_admin.contrib.sqla.fields.QuerySelectMultipleField&amp;#39;&lt;/span&gt;&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The model column definition in question was a simple relationship with a join table:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyModel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AAAModel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# uselist=True means you can have more than one child MyChildModel per MyModel&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;children&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;relationship&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;MyChildModel&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;secondary&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;model_children_join&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uselist&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Looking into the &lt;a href=&quot;https://github.com/flask-admin/flask-admin/blob/master/flask_admin/model/widgets.py#L100&quot;&gt;Flask-Admin code&lt;/a&gt;, 
+they actually support a number of other fields types such as &lt;code&gt;Boolean&lt;/code&gt;, &lt;code&gt;DateTime&lt;/code&gt;, &lt;code&gt;Float&lt;/code&gt;, etc. But
+no select multiple. Here is the &lt;code&gt;Flask-Admin&lt;/code&gt; code block that I was looking at:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;XEditableWidget&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;        WTForms widget that provides in-line editing for the list view.&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;        Determines how to display the x-editable/ajax form based on the&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;        field inside of the FieldList (StringField, IntegerField, etc).&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__call__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;field&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setdefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-value&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;value&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setdefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-role&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;x-editable&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setdefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-url&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;./ajax/update/&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setdefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;id&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;field&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setdefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;name&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;field&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setdefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;href&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;#&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;pk&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;raise&lt;/span&gt; &lt;span class=&quot;ne&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;pk required&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-pk&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;pk&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-csrf&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;csrf&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;c&quot;&gt;# subfield is the first entry (subfield) from FieldList (field)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;field&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;entries&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get_kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;HTMLString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;lt;a &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;lt;/a&amp;gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;html_params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+                              &lt;span class=&quot;n&quot;&gt;escape&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-value&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]))&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;            Return extra kwargs based on the subfield type.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;        &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;StringField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;text&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;TextAreaField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;textarea&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-rows&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;5&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;BooleanField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;select&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;c&quot;&gt;# data-source = dropdown options&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-source&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;False&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;1&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;True&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-role&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;x-editable-boolean&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;Select2Field&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;select&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-source&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;DateField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;combodate&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-format&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;YYYY-MM-DD&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-template&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;YYYY-MM-DD&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;DateTimeField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;combodate&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-format&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;YYYY-MM-DD HH:mm:ss&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-template&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;YYYY-MM-DD  HH:mm:ss&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;c&quot;&gt;# x-editable-combodate uses 1 minute increments&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-role&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;x-editable-combodate&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;TimeField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;combodate&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-format&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;HH:mm:ss&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-template&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;HH:mm:ss&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-role&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;x-editable-combodate&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;IntegerField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;number&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;FloatField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;DecimalField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;number&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-step&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;any&amp;#39;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;QuerySelectField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;ModelSelectField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;select&amp;#39;&lt;/span&gt;
+
+            &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;label&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;except&lt;/span&gt; &lt;span class=&quot;ne&quot;&gt;TypeError&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-source&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;raise&lt;/span&gt; &lt;span class=&quot;ne&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;Unsupported field type: &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),))&lt;/span&gt;
+
+        &lt;span class=&quot;c&quot;&gt;# for Select2, QuerySelectField, and ModelSelectField&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;getattr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;allow_blank&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-source&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;__None&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Basically, it&amp;#39;s generating some HTML from a &lt;code&gt;kwargs&lt;/code&gt; dict based on the field type. These are 
+&lt;a href=&quot;https://wtforms.readthedocs.org/en/latest/&quot;&gt;WTForms&lt;/a&gt; types from the 
+&lt;a href=&quot;https://wtforms.readthedocs.org/en/latest/ext.html?highlight=queryselectfield#module-wtforms.ext.sqlalchemy&quot;&gt;SQLAlchemy WTForm extension&lt;/a&gt;. 
+But the &lt;code&gt;data-type&lt;/code&gt; types are actually from a Javascript library called &lt;a href=&quot;https://vitalets.github.io/x-editable/docs.html&quot;&gt;x-editable&lt;/a&gt;, which is
+doing the actual UI and Ajax call for the update. &lt;/p&gt;
+
+&lt;p&gt;It turns out that &lt;code&gt;x-editable&lt;/code&gt; doesn&amp;#39;t support a &lt;code&gt;select multiple&lt;/code&gt; element, but they do have a &lt;a href=&quot;https://vitalets.github.io/x-editable/docs.html#checklist&quot;&gt;checklist&lt;/a&gt;
+type, which is just as good (at least for a small number of choices). Hacking this into the 
+&lt;code&gt;ModelView&lt;/code&gt; was pretty simple.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;flask.ext.admin.model.widgets&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;XEditableWidget&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CustomWidget&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;XEditableWidget&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;QuerySelectMultipleField&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;checklist&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-placement&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;left&amp;#39;&lt;/span&gt;
+            &lt;span class=&quot;c&quot;&gt;# copied from flask_admin/model/widgets.py&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;label&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;except&lt;/span&gt; &lt;span class=&quot;ne&quot;&gt;TypeError&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;choice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;data-source&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;choices&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;nb&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CustomWidget&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get_kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subfield&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CustomFieldList&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ListEditableFieldList&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;widget&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CustomWidget&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyModelView&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BaseModelView&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;column_editable_list&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;question&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;details&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;slug&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;status&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;children&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_list_form&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scaffold_list_form&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CustomFieldList&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content>
+        </entry>
+    
+        <entry>
+            <title>Optimizing Flask client tests</title>
+            <link href="/blog/2015/09/18/flask-test-client-setupclass.html"/>
+            <updated>2015-09-18T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/09/18/flask-test-client-setupclass</id>
+            <content type="html">&lt;p&gt;When writing Python integration tests, it&amp;#39;s useful to put slow code such as database access in a 
+&lt;a href=&quot;https://docs.python.org/2/library/unittest.html#setupclass-and-teardownclass&quot;&gt;setUpClass&lt;/a&gt; method, 
+so that they are only executed once for the entire &lt;code&gt;unittest.TestCase&lt;/code&gt;. Recently, when writing
+integration tests for a Flask API, I wanted to make an API call once for the &lt;code&gt;TestCase&lt;/code&gt;, but have
+many tests that assert on various parts of the JSON response. This was a little awkward because 
+the Flask &lt;a href=&quot;http://flask.pocoo.org/docs/0.10/testing/&quot;&gt;test client&lt;/a&gt; was only being instantiated with 
+an instance of &lt;code&gt;TestCase&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;I ended up caching API responses in a global variable in my custom base &lt;code&gt;TestCase&lt;/code&gt; subclass.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;functools&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;partial&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;unittest&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TestCase&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;_cached_api_responses&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyTestCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TestCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;set_cached_json_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot; We want to separate out tests for various keys in the json response &lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;            of an API call, but we only want to make an API once for performance&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;            reasons. Solution is to cache this between test calls, which is made&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;            more difficult due to test classes being re-instantiated between&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;            individual tests. Cache in a global. &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;global&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_cached_api_responses&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_cached_api_responses&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cache_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;_cached_api_responses&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cache_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SpecificTestCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MyTestCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@classmethod&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;setUpClass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cls&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c&quot;&gt;# do a bunch of database record creation&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;cls&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;db_object&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;setUp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;c&quot;&gt;# cache a flask API response &lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;test_callable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;partial&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;/my-url&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;set_cached_json_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;my-url&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test_foo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;foo&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;foo&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;foo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test_bar&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;bar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;response_json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;foo&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;bar&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bar&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The use of partial is just to make it easier to pass any test client call into the caching function.&lt;/p&gt;
+
+&lt;p&gt;The fact that it&amp;#39;s caching JSON and not a collection of SQLAlchemy database objects is important,
+if you tried that, you would find that SQLAlchemy would throw exceptions about the objects no longer
+being tied to a session in your tests. &lt;/p&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Per-OS virtual environments in Python</title>
+            <link href="/blog/2015/09/11/virtual-env-osx.html"/>
+            <updated>2015-09-11T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/09/11/virtual-env-osx</id>
+            <content type="html">&lt;p&gt;A common setup for web development is to have a virtual machine on your Mac running all your code. Typically this involves a shared folder containing the code, so that you can edit the file locally on your Mac, but it&amp;#39;s also available to the guest OS to execute. At least with Vagrant and either VirutalBox or VMWare, the performance of the shared folder can quickly become a nuisance.&lt;/p&gt;
+
+&lt;p&gt;If you&amp;#39;re running a long test suite, you may be sacrificing as much as 40% of the time to the virtualization in my admittedly informal testing. Also vexing is hot reloading code changes in your web app, where you suffer from lag between when a file is changed and when the event bubbles up in the guest OS. I&amp;#39;ve written about some &lt;a href=&quot;http://chase-seibert.github.io/blog/2014/03/09/vagrant-cachefilesd.html&quot;&gt;mitigation strategies&lt;/a&gt; before. The upshot is that you may be waiting several seconds longer than necessary before you can refresh your app the see the changes. Those seconds add up when you perform this cycle hundreds of times a day. Git hook performance can also be slower than normal.&lt;/p&gt;
+
+&lt;p&gt;What&amp;#39;s preventing you from running some or all of these operations on your local Mac? Mainly that all your dependencies only exist inside the virtual machine. With Python code bases, this often translates into the fact that your virtualenv directory has architecture (Linux) specific binary packages inside it.&lt;/p&gt;
+
+&lt;p&gt;If you happen to use a &lt;code&gt;Makefile&lt;/code&gt; to generate your virtualenv and run common commands, you can easily handle this there by creating different virtualenv directories for each environment.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;VENV_DIR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;venv
+ifeq &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;shell uname&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;,Darwin&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# allows you to have two venv dirs, one for local osx development (faster)&lt;/span&gt;
+    &lt;span class=&quot;nv&quot;&gt;VENV_DIR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;venv-osx
+endif
+
+&lt;span class=&quot;nb&quot;&gt;test&lt;/span&gt;:
+    @. &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;VENV_DIR&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;/bin/activate&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; nosetests
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Just remember to add the new virtualenv directories to your &lt;code&gt;.gitignore&lt;/code&gt; file.&lt;/p&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Getting Started with Sphinx docs</title>
+            <link href="/blog/2015/08/14/getting-started-with-sphinx.html"/>
+            <updated>2015-08-14T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/08/14/getting-started-with-sphinx</id>
+            <content type="html">&lt;p&gt;Everyone knows that you should write documentation for your code. Writing documentation actually is not that hard. Like any type of writing, the hardest part is beginning. So how do you begin writing documentation for your Python projects?&lt;/p&gt;
+
+&lt;h1&gt;Enter Sphinx&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://sphinx-doc.org/&quot;&gt;Sphinx&lt;/a&gt; is the de-facto standard in the Python community for generating documentation for your projects. It&amp;#39;s simple to create HTML/PDF files with code samples, tables of contents, and built in search. Many popular projects host their Sphinx docs on &lt;a href=&quot;https://readthedocs.org/&quot;&gt;readthedocs.org&lt;/a&gt;. A couple of good examples are &lt;a href=&quot;http://celery.readthedocs.org/en/latest/getting-started/first-steps-with-celery.html#application&quot;&gt;celery&lt;/a&gt; and &lt;a href=&quot;http://flask.readthedocs.org/en/latest/quickstart/&quot;&gt;flask&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;One of the key feature of Sphinx is that it allows you to generate as much of the documentation as possible from comments in your Python code. It can also automatically pull the signatures of your modules, classes, functions and methods. Together, these features allow you to keep most of your documentation up to date automatically. Of course, you will also want to write higher level pages on specific topics, and you can easily define those in either &lt;a href=&quot;http://daringfireball.net/projects/markdown/&quot;&gt;Markdown&lt;/a&gt; or &lt;a href=&quot;http://docutils.sourceforge.net/rst.html&quot;&gt;reStructuredText&lt;/a&gt;, both of which render as rich text when viewed directly in your GitHub repository.&lt;/p&gt;
+
+&lt;h1&gt;Quickstart&lt;/h1&gt;
+
+&lt;p&gt;First, you need to install Sphinx. Then you run their quickstart command, which prompts you for configuration options. You&amp;#39;re pretty safe use the defaults in most cases. &lt;strong&gt;The only sphinx-quickstart options I typically customize are enabling autodoc and using &amp;quot;docs&amp;quot; as the project root.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Here are the basic console commands. You would run these from inside your project root.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo pip install sphinx
+sphinx-quickstart
+&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;docs
+make html
+open _build/html/index.html
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will be sufficient to get a basic HTML document. Typically my next steps will be to integrated with my project README, and configure autodoc to find my code.&lt;/p&gt;
+
+&lt;h1&gt;Update your README&lt;/h1&gt;
+
+&lt;p&gt;I usually have my READMEs defined in Markdown, but for the purposes of Sphinx I think it&amp;#39;s worth it to switch to reStructuredText, simply so that you can include the README as the first page of your docs. reStructuredText is pretty simple, here is a quick example of a &lt;code&gt;README.rst&lt;/code&gt; to get you started.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;o&quot;&gt;===========================================&lt;/span&gt;
+ IPython: Productive Interactive &lt;span class=&quot;nv&quot;&gt;Computing&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;===========================================&lt;/span&gt;
+
+&lt;span class=&quot;nv&quot;&gt;Overview&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;========&lt;/span&gt;
+
+Welcome to IPython.  Our full documentation is available on &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;our website
+&amp;lt;http://ipython.org/documentation.html&amp;gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; you downloaded a built &lt;span class=&quot;nb&quot;&gt;source&lt;/span&gt;
+distribution the &lt;span class=&quot;sb&quot;&gt;``&lt;/span&gt;docs/source&lt;span class=&quot;sb&quot;&gt;``&lt;/span&gt; directory contains the plaintext version of
+these manuals.  If you have Sphinx installed, you can build them by typing
+&lt;span class=&quot;sb&quot;&gt;``&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;docs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; make html&lt;span class=&quot;sb&quot;&gt;``&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;local &lt;/span&gt;browsing.
+
+Instant &lt;span class=&quot;nv&quot;&gt;running&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;===============&lt;/span&gt;
+
+You can run IPython from this directory without even installing it system-wide
+by typing at the terminal::
+
+   python -m IPython
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This example illustrates how to format titles, subtitles, links, inline code and code blocks.&lt;/p&gt;
+
+&lt;h1&gt;Include the README.rst in your docs&lt;/h1&gt;
+
+&lt;p&gt;Edit your &lt;code&gt;docs/index.rst&lt;/code&gt; file to include the README:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;.. include:: ../README.rst
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;If that&amp;#39;s all that&amp;#39;s in your index file, and you run &lt;code&gt;make html&lt;/code&gt; again, you should see your README contents.&lt;/p&gt;
+
+&lt;h1&gt;Break out into more than one file&lt;/h1&gt;
+
+&lt;p&gt;Next, we will start breaking out our documentation into multiples files. Simply create a new reStructuredText file along side &lt;code&gt;index.rst&lt;/code&gt;. You can call it anything, for example &lt;code&gt;example.rst&lt;/code&gt;. You can then include this file in your index like so:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;.. include:: ../README.rst
+
+Read More
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   example
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This tells Sphinx to render your README, followed by a subtitle of &amp;quot;Read More&amp;quot;, followed by a list of other documents, one of which is your external &lt;code&gt;example.rst&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;h1&gt;Start using autodoc&lt;/h1&gt;
+
+&lt;p&gt;In that &lt;code&gt;example.rst&lt;/code&gt;, you could put the following.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Some &lt;span class=&quot;nv&quot;&gt;Examples&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;=============&lt;/span&gt;
+
+Here are some examples to get you started.
+
+.. automodule:: src.examples
+    :members:
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will look at your code in &lt;code&gt;src/examples.py&lt;/code&gt; for classes, functions and methods. Each one will be listed in this section of the docs, along with any docstrings that where present. See the following example. All of these sections in the text are optional.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;public_fn_with_sphinxy_docstring&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot;This function does something.&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;    write as much as you want here&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;    here is a code sample:&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;    &amp;gt;&amp;gt;&amp;gt; from example import public_fn_with_sphinxy_docstring&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    &amp;gt;&amp;gt;&amp;gt; public_fn_with_sphinxy_docstring(&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    ...     &amp;#39;foobar&amp;#39;,&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    ...     &amp;#39;pending&amp;#39;)&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    0&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;    :param name: The name to use.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    :type name: str.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    :param state: Current state to be in.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    :type state: bool.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    :returns:  int -- the return code.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    :raises: AttributeError, KeyError&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;Automating Doc Generation&lt;/h1&gt;
+
+&lt;p&gt;If you use Jenkins for your continuous integration system, you can use the &lt;a href=&quot;https://wiki.jenkins-ci.org/display/JENKINS/HTML+Publisher+Plugin&quot;&gt;HTML Publisher Plugin&lt;/a&gt; to automatically build the documentation every time you merge. It will also host the HTML for you, right in Jenkins.&lt;/p&gt;
+
+&lt;h1&gt;References&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://pythonhosted.org/an_example_pypi_project/sphinx.html&quot;&gt;Sphinx Basics&lt;/a&gt; - Good listing of basic reStructuredText syntax for Spinx&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+        </entry>
+    
+        <entry>
+            <title>Customizing Celery with Task Arguments</title>
+            <link href="/blog/2015/07/24/custom-celery-arguments.html"/>
+            <updated>2015-07-24T00:00:00-07:00</updated>
+            <id>http://chase-seibert.github.com/blog//2015/07/24/custom-celery-arguments</id>
+            <content type="html">&lt;p&gt;&lt;a href=&quot;http://www.celeryproject.org/&quot;&gt;Celery&lt;/a&gt; is an awesome distributed asynchronous task system for Python. It&amp;#39;s great out of the box, but a couple of times I have needed to customize it. Specifically, I want to be able to define behavior based on a new &lt;code&gt;apply_sync&lt;/code&gt; arguments. Also, it would be nice to be able to pass state to the worker tasks.&lt;/p&gt;
+
+&lt;p&gt;First, you can subclass the main &lt;code&gt;Celery&lt;/code&gt; class to define a custom &lt;code&gt;Task&lt;/code&gt; class.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;socket&lt;/span&gt;
+
+&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;celery&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Celery&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Task&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;kombu.exceptions&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;InconsistencyError&lt;/span&gt;
+
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyCelery&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Celery&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot; Subclass of a Celery application class that uses a custom Task type &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;task_cls&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;myapp.mymodule:MyTask&amp;#39;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;In your &lt;code&gt;Task&lt;/code&gt; class, you can override &lt;code&gt;apply_async&lt;/code&gt; (which is also called from &lt;code&gt;delay&lt;/code&gt;), as well as &lt;code&gt;__call__&lt;/code&gt;, which wraps around the actual task body.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyTask&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Task&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;abstract&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;apply_async&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;task_id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;link&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;link_error&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot; invoked either directly or via .delay() to fork a task from the main process &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+
+        &lt;span class=&quot;c&quot;&gt;# parse any custom task options from the .delay() or .apply_async() calls&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;safe&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;safe&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;c&quot;&gt;# safely trap errors talking to celery broker&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;headers&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;headers&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{})&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;headers&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;update&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;({&lt;/span&gt;
+            &lt;span class=&quot;s&quot;&gt;&amp;#39;safe&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;safe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MyTask&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;apply_async&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;task_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;link&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;link_error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;except&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InconsistencyError&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;c&quot;&gt;# InconsistencyError == cannot find the celery queue&lt;/span&gt;
+            &lt;span class=&quot;c&quot;&gt;# socket.error == cannot talk to the queue server at all&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;safe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;raise&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__call__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;sd&quot;&gt;&amp;quot;&amp;quot;&amp;quot; execute the task body on the remote worker &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;safe&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get_header&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;safe&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NWTask&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__call__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kwargs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;except&lt;/span&gt; &lt;span class=&quot;ne&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;safe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;raise&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_header&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{})&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;In this example, I&amp;#39;m introducing an optional &lt;code&gt;safe&lt;/code&gt; argument to &lt;code&gt;apply_async&lt;/code&gt;, which traps and ignores specific exceptions trying to fork the task. It also piggy backs on the celery task headers to pass itself to the worker process, where it ignores any exception thrown by the task itself.&lt;/p&gt;
+</content>
+        </entry>
+    
+
+</feed>
